@@ -1,3 +1,45 @@
+# MedSafe
+
+MedSafe is a pharmaceutical batch verification demo built with Next.js.
+
+## Features implemented
+
+- Manufacturer batch registration flow with Lightning-style invoice creation
+- Payment confirmation endpoint that signs and publishes a Nostr event
+- Batch verification endpoint with signature check and anomaly logging
+- Twilio WhatsApp webhook endpoint for text/image verification flow
+- Dashboard pages for registration and viewing batches
+- NeonDB-compatible data layer with in-memory fallback for local hacking
+
+## Quick start
+
+1. Copy env values:
+
+```bash
+cp .env.example .env.local
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Run dev server:
+
+```bash
+npm run dev
+```
+
+## Main routes
+
+- `/` landing page
+- `/register` batch registration form
+- `/batches` list of created batches
+- `POST /api/register-batch`
+- `GET /api/register-batch/confirm?paymentHash=...`
+- `GET /api/verify-batch?batchId=...`
+- `POST /api/whatsapp-webhook`
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

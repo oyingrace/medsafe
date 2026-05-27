@@ -1,0 +1,42 @@
+import { NextResponse } from "next/server";
+import { logAndCheckAnomaly } from "@/lib/anomaly";
+import { queryBatchById, verifyEventSignature } from "@/lib/nostr";
+
+function toDetails(event: Awaited<ReturnType<typeof queryBatchById>>) {
+  if (!event) return undefined;
+  const map = new Map(event.tags.map((t) => [t[0], t[1]]));
+  return {
+    batchId: map.get("d") ?? "",
+    drugName: map.get("drug_name") ?? "",
+    manufacturer: map.get("manufacturer") ?? "",
+    manufactureDate: map.get("manufacture_date") ?? "",
+    expiryDate: map.get("expiry_date") ?? "",
+    paymentHash: map.get("lightning_payment_hash") ?? "",
+    eventId: event.id,
+    createdAt: event.created_at,
+  };
+}
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const batchId = searchParams.get("batchId");
+  const userPhone = searchParams.get("userPhone") ?? undefined;
+  const region = searchParams.get("region") ?? undefined;
+
+  if (!batchId) {
+    return NextResponse.json({ success: false, error: "batchId is required" }, { status: 400 });
+  }
+
+  const event = await queryBatchById(batchId);
+  if (!event || !verifyEventSignature(event)) {
+    await logAndCheckAnomaly(batchId, "fake", userPhone, region);
+    return NextResponse.json({ success: true, status: "fake" as const });
+  }
+
+  const anomaly = await logAndCheckAnomaly(batchId, "verified", userPhone, region);
+  if (anomaly.isAnomaly) {
+    return NextResponse.json({ success: true, status: "anomaly" as const, details: toDetails(event) });
+  }
+
+  return NextResponse.json({ success: true, status: "verified" as const, details: toDetails(event) });
+}

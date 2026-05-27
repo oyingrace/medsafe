@@ -12,6 +12,7 @@ const mem = {
     region?: string;
     queriedAt: number;
   }>,
+  anomalyAlerts: [] as Array<{ batchId: string; alertType: string; regions: string[]; resolved: boolean; flaggedAt: number }>,
 };
 
 let idSeq = 1;
@@ -134,16 +135,112 @@ export async function logVerification(
 export async function getRecentVerifications(batchId: string, lookbackHours = 24) {
   const minTime = Date.now() - lookbackHours * 60 * 60 * 1000;
   if (sql) {
-    const rows = await sql`
+    const hours = Math.max(1, Math.min(168, Math.floor(Number(lookbackHours) || 24)));
+    return await sql`
       SELECT batch_id, result, user_phone, region, queried_at
       FROM verification_logs
       WHERE batch_id = ${batchId}
-        AND queried_at > NOW() - (${lookbackHours} || ' hour')::INTERVAL
+        AND queried_at > NOW() - (${hours}::int * interval '1 hour')
       ORDER BY queried_at DESC
     `;
-    return rows;
   }
   return mem.verifications.filter(
     (v) => v.batchId === batchId && v.queriedAt >= minTime,
   );
+}
+
+async function ensureAnomalyAlertsTableSql() {
+  if (!sql) return;
+  await sql`
+    CREATE TABLE IF NOT EXISTS anomaly_alerts (
+      id SERIAL PRIMARY KEY,
+      batch_id TEXT NOT NULL,
+      alert_type TEXT,
+      regions TEXT[],
+      flagged_at TIMESTAMPTZ DEFAULT NOW(),
+      resolved BOOLEAN DEFAULT FALSE
+    )
+  `;
+}
+
+/** Insert an anomaly alert; `regions` must be simple strings (stored as Postgres text[]) */
+export async function createAnomalyAlert(batchId: string, alertType: string, regions: string[]) {
+  if (sql) {
+    await ensureAnomalyAlertsTableSql();
+    const safeParts = regions.map((part) => part.replace(/[^a-zA-Z0-9:_-]/g, "")).filter(Boolean);
+    const safe = safeParts.join(",");
+    await sql`
+      INSERT INTO anomaly_alerts (batch_id, alert_type, regions)
+      VALUES (
+        ${batchId},
+        ${alertType},
+        CASE
+          WHEN ${safe} = '' THEN ARRAY[]::text[]
+          ELSE string_to_array(${safe}, ',')
+        END
+      )
+    `;
+    return;
+  }
+  mem.anomalyAlerts.push({
+    batchId,
+    alertType,
+    regions: [...regions],
+    resolved: false,
+    flaggedAt: Date.now(),
+  });
+}
+
+export async function getDashboardStats() {
+  if (sql) {
+    await sql`
+      CREATE TABLE IF NOT EXISTS medsafe_batches (
+        id SERIAL PRIMARY KEY,
+        batch_id TEXT UNIQUE NOT NULL,
+        drug_name TEXT NOT NULL,
+        manufacturer TEXT NOT NULL,
+        manufacture_date TEXT NOT NULL,
+        expiry_date TEXT NOT NULL,
+        status TEXT NOT NULL,
+        payment_hash TEXT,
+        invoice TEXT,
+        nostr_event_id TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS verification_logs (
+        id SERIAL PRIMARY KEY,
+        batch_id TEXT NOT NULL,
+        result TEXT NOT NULL,
+        user_phone TEXT,
+        region TEXT,
+        queried_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await ensureAnomalyAlertsTableSql();
+
+    const batchRows =
+      await sql`SELECT COUNT(*)::int AS c FROM medsafe_batches WHERE status = 'registered'`;
+    const pendingRows =
+      await sql`SELECT COUNT(*)::int AS c FROM medsafe_batches WHERE status = 'pending_payment'`;
+    const verifyRows = await sql`SELECT COUNT(*)::int AS c FROM verification_logs`;
+    const alertRows =
+      await sql`SELECT COUNT(*)::int AS c FROM anomaly_alerts WHERE resolved = FALSE`;
+
+    return {
+      registeredBatches: Number(batchRows[0]?.c ?? 0),
+      pendingBatches: Number(pendingRows[0]?.c ?? 0),
+      totalVerifications: Number(verifyRows[0]?.c ?? 0),
+      openAlerts: Number(alertRows[0]?.c ?? 0),
+    };
+  }
+
+  const batches = [...mem.batches.values()];
+  return {
+    registeredBatches: batches.filter((b) => b.status === "registered").length,
+    pendingBatches: batches.filter((b) => b.status === "pending_payment").length,
+    totalVerifications: mem.verifications.length,
+    openAlerts: mem.anomalyAlerts.filter((a) => !a.resolved).length,
+  };
 }

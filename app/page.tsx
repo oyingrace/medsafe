@@ -1,28 +1,42 @@
 import Link from "next/link";
+import { StatsCard } from "@/components/StatsCard";
+import { getDashboardStats } from "@/lib/db";
 
-export default function Home() {
+export default async function Home() {
+  const stats = await getDashboardStats();
+
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
-      <section className="rounded-2xl bg-green-50 border border-green-200 p-6">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 p-6">
+      <section className="rounded-2xl border border-green-200 bg-green-50 p-6">
         <h1 className="text-3xl font-bold text-green-800">MedSafe</h1>
         <p className="mt-2 text-zinc-700">
           Drug batch verification using Nostr for records and Lightning for anti-spam registration.
         </p>
-        <div className="mt-4 flex gap-3">
-          <Link href="/register" className="rounded-lg bg-green-600 px-4 py-2 text-white">
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link href="/register" className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700">
             Register Batch
           </Link>
-          <Link href="/batches" className="rounded-lg border px-4 py-2">
+          <Link href="/batches" className="rounded-lg border border-zinc-300 bg-white px-4 py-2 hover:bg-zinc-50">
             View Batches
           </Link>
         </div>
       </section>
 
-      <section className="rounded-xl border p-4">
-        <h2 className="text-xl font-semibold">WhatsApp verification endpoint</h2>
-        <p className="text-sm text-zinc-600 mt-2">
-          Configure Twilio webhook to <code>/api/whatsapp-webhook</code>. Users send a batch ID or photo and receive
-          verification status.
+      <section>
+        <h2 className="mb-3 text-lg font-semibold text-zinc-900">Dashboard</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatsCard title="Registered batches" value={stats.registeredBatches} />
+          <StatsCard title="Pending payment" value={stats.pendingBatches} />
+          <StatsCard title="Total verifications" value={stats.totalVerifications} />
+          <StatsCard title="Open anomaly alerts" value={stats.openAlerts} />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-zinc-200 p-4">
+        <h2 className="text-xl font-semibold">WhatsApp verification</h2>
+        <p className="mt-2 text-sm text-zinc-600">
+          Point Twilio at <code>/api/whatsapp-webhook</code>. Users send a batch ID or packaging photo (OCR via
+          Tesseract.js) and get a verification reply.
         </p>
       </section>
     </main>

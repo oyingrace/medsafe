@@ -3,6 +3,8 @@ import { checkPaymentStatus } from "@/lib/breez";
 import { getBatchByPaymentHash, markBatchRegistered } from "@/lib/db";
 import { createBatchEvent, publishBatchEvent } from "@/lib/nostr";
 
+export const runtime = "nodejs";
+
 function pick(record: unknown, a: string, b?: string) {
   if (!record || typeof record !== "object") return "";
   const row = record as Record<string, unknown>;
@@ -29,6 +31,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: "MANUFACTURER_PRIVATE_KEY missing" }, { status: 500 });
   }
 
+  const existingNostr = pick(batch, "nostr_event_id", "nostrEventId");
+  if (existingNostr) {
+    return NextResponse.json({
+      success: true,
+      status: "paid",
+      nostrEventId: existingNostr,
+      relay: process.env.NOSTR_RELAY_URL?.split(",")[0]?.trim() ?? "in-memory",
+    });
+  }
+
   const event = createBatchEvent(
     {
       batchId: pick(batch, "batch_id", "batchId"),
@@ -40,13 +52,26 @@ export async function GET(req: Request) {
     privateKey,
     paymentHash,
   );
-  const publishResult = await publishBatchEvent(event);
-  await markBatchRegistered(pick(batch, "batch_id", "batchId"), publishResult.eventId);
+  try {
+    const publishResult = await publishBatchEvent(event);
+    await markBatchRegistered(pick(batch, "batch_id", "batchId"), publishResult.eventId);
 
-  return NextResponse.json({
-    success: true,
-    status: "paid",
-    nostrEventId: publishResult.eventId,
-    relay: publishResult.relayUrl,
-  });
+    return NextResponse.json({
+      success: true,
+      status: "paid",
+      nostrEventId: publishResult.eventId,
+      relay: publishResult.relayUrl,
+    });
+  } catch (err) {
+    console.error("[register-batch/confirm] nostr publish failed:", err);
+    return NextResponse.json(
+      {
+        success: false,
+        status: "paid",
+        error: "Payment recorded but Nostr publish failed; retry this request.",
+        detail: err instanceof Error ? err.message : String(err),
+      },
+      { status: 503 },
+    );
+  }
 }

@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { logAndCheckAnomaly } from "@/lib/anomaly";
-import { queryBatchById, verifyEventSignature } from "@/lib/nostr";
+import {
+  isTrustedManufacturer,
+  queryBatchById,
+  verifyEventSignature,
+} from "@/lib/nostr";
+
+export const runtime = "nodejs";
 
 function toDetails(event: Awaited<ReturnType<typeof queryBatchById>>) {
   if (!event) return undefined;
@@ -28,9 +34,17 @@ export async function GET(req: Request) {
   }
 
   const event = await queryBatchById(batchId);
-  if (!event || !verifyEventSignature(event)) {
+  if (!event) {
     await logAndCheckAnomaly(batchId, "fake", userPhone, region);
-    return NextResponse.json({ success: true, status: "fake" as const });
+    return NextResponse.json({ success: true, status: "fake" as const, reason: "not_found" });
+  }
+  if (!verifyEventSignature(event)) {
+    await logAndCheckAnomaly(batchId, "fake", userPhone, region);
+    return NextResponse.json({ success: true, status: "fake" as const, reason: "bad_signature" });
+  }
+  if (!isTrustedManufacturer(event)) {
+    await logAndCheckAnomaly(batchId, "fake", userPhone, region);
+    return NextResponse.json({ success: true, status: "fake" as const, reason: "wrong_manufacturer_pubkey" });
   }
 
   const anomaly = await logAndCheckAnomaly(batchId, "verified", userPhone, region);

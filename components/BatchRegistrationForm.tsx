@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PaymentModal } from "@/components/PaymentModal";
 
@@ -38,13 +38,39 @@ export function BatchRegistrationForm() {
     setStatus("pending");
   }
 
-  async function checkStatus() {
+  const checkStatus = useCallback(async () => {
     if (!paymentHash) return;
     const resp = await fetch(`/api/register-batch/confirm?paymentHash=${encodeURIComponent(paymentHash)}`);
-    const data = await resp.json();
-    setStatus(data.status);
+    const data = (await resp.json()) as {
+      success?: boolean;
+      status?: "pending" | "paid" | "failed";
+      nostrEventId?: string;
+      error?: string;
+      detail?: string;
+    };
+    if (!resp.ok) {
+      setError(data.detail ?? data.error ?? "Could not confirm payment / publish to Nostr");
+      setStatus("pending");
+      return;
+    }
+    setError("");
+    setStatus(data.status ?? "pending");
     if (data.nostrEventId) setNostrEventId(data.nostrEventId);
-  }
+  }, [paymentHash]);
+
+  useEffect(() => {
+    if (!paymentHash || status === "paid" || status === "failed") return;
+    const immediate = window.setTimeout(() => {
+      void checkStatus();
+    }, 0);
+    const timer = window.setInterval(() => {
+      void checkStatus();
+    }, 2000);
+    return () => {
+      window.clearTimeout(immediate);
+      window.clearInterval(timer);
+    };
+  }, [paymentHash, status, checkStatus]);
 
   return (
     <div className="grid gap-4 md:grid-cols-2">

@@ -12,10 +12,10 @@ MedSafe is a drug verification system built on the Nostr protocol and Bitcoin Li
 
 Counterfeit and substandard drugs are a major cause of preventable deaths in Africa.
 
-WHO reports that 1 in 10 medicines in Africa is fake.
-Over 500,000 deaths yearly linked to counterfeit drugs (UNODC, 2023).
-Over $200 billion lost annually in global counterfeit pharma trade.
-Existing verification systems (scratch codes, SMS) are slow, corruptible, and easily faked.
+- WHO reports that 1 in 10 medicines in Africa is fake.
+- Over 500,000 deaths yearly linked to counterfeit drugs (UNODC, 2023).
+- Over $200 billion lost annually in global counterfeit pharma trade.
+- Existing verification systems (scratch codes, SMS) are slow, corruptible, and easily faked.
 
 # Solution
 

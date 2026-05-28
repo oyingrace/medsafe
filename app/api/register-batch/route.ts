@@ -3,6 +3,8 @@ import { z } from "zod";
 import { createBatchInvoice } from "@/lib/breez";
 import { createPendingBatch } from "@/lib/db";
 
+export const runtime = "nodejs";
+
 const payloadSchema = z.object({
   batchId: z.string().trim().min(6).max(24).regex(/^[A-Za-z0-9-]+$/),
   drugName: z.string().trim().min(2),

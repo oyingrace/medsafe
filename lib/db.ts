@@ -67,6 +67,24 @@ export async function createPendingBatch(
   });
 }
 
+/** Persist full signed Nostr event JSON so it survives server restarts */
+export async function saveNostrEvent(batchId: string, eventJson: string) {
+  if (!sql) return;
+  // Add column if it doesn't exist yet (idempotent)
+  await sql`ALTER TABLE medsafe_batches ADD COLUMN IF NOT EXISTS nostr_event_json TEXT`;
+  await sql`UPDATE medsafe_batches SET nostr_event_json = ${eventJson} WHERE batch_id = ${batchId}`;
+}
+
+/** Retrieve the persisted Nostr event JSON for a batch (returns null if not found) */
+export async function getNostrEventByBatchId(batchId: string): Promise<string | null> {
+  if (!sql) return null;
+  const rows = await sql`
+    SELECT nostr_event_json FROM medsafe_batches WHERE batch_id = ${batchId} LIMIT 1
+  `;
+  const val = rows[0]?.nostr_event_json;
+  return typeof val === "string" ? val : null;
+}
+
 export async function markBatchRegistered(batchId: string, nostrEventId: string) {
   if (sql) {
     await sql`

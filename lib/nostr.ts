@@ -9,6 +9,7 @@ import {
 import type { Filter } from "nostr-tools/filter";
 import { SimplePool } from "nostr-tools/pool";
 import type { BatchRegistrationInput } from "@/types";
+import { getNostrEventByBatchId, saveNostrEvent } from "@/lib/db";
 
 const BATCH_KIND = 30078;
 
@@ -71,6 +72,13 @@ export async function publishBatchEvent(event: VerifiedEvent) {
   const idTag = tagValue(event.tags, "d") ?? event.id;
   registry.set(idTag, event);
 
+  // Persist the full event JSON to the DB so it survives server restarts
+  try {
+    await saveNostrEvent(idTag, JSON.stringify(event));
+  } catch (err) {
+    console.warn("[nostr] failed to persist event to DB:", err);
+  }
+
   if (shouldUseMemoryRelay()) {
     return { eventId: event.id, relayUrl: "in-memory" };
   }
@@ -108,7 +116,25 @@ export async function queryBatchById(batchId: string) {
     }
   }
 
-  return registry.get(batchId) ?? null;
+  // Check in-memory registry first
+  const cached = registry.get(batchId);
+  if (cached) return cached;
+
+  // DB fallback — reload persisted event JSON after a server restart
+  try {
+    const eventJson = await getNostrEventByBatchId(batchId);
+    if (eventJson) {
+      const parsed = JSON.parse(eventJson) as VerifiedEvent;
+      if (verifyEvent(parsed)) {
+        registry.set(batchId, parsed); // warm the cache for next time
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("[nostr] DB event restore failed:", err);
+  }
+
+  return null;
 }
 
 export function verifyEventSignature(event: VerifiedEvent) {

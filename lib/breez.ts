@@ -55,6 +55,9 @@ async function getSparkSdk() {
       if (apiKey) {
         config.apiKey = apiKey;
       }
+      // Higher multiplicity lets the SDK split a freshly-claimed deposit
+      // leaf into enough small leaves for sub-1000-sat Spark payments.
+      config.optimizationConfig = { autoEnabled: true, multiplicity: 5 };
       const storageDir = process.env.BREEZ_WORKING_DIR?.trim() || "./breez-data";
 
       const sdk = await mod.connect({
@@ -88,6 +91,7 @@ async function getPayerSdk() {
       const config = mod.defaultConfig(network);
       const apiKey = process.env.BREEZ_API_KEY?.trim();
       if (apiKey) config.apiKey = apiKey;
+      config.optimizationConfig = { autoEnabled: true, multiplicity: 5 };
       const storageDir = (process.env.BREEZ_WORKING_DIR?.trim() || "./breez-data") + "-payer";
       const sdk = await mod.connect({
         config,
@@ -289,6 +293,82 @@ function serializePayment(payment: BreezPayment) {
   };
 }
 
+export function toNumberSafePublic(value: unknown, fallback = 0) {
+  return toNumberSafe(value, fallback);
+}
+
+export async function waitForLeafOptimizationPublic(
+  sdk: import("@breeztech/breez-sdk-spark/nodejs").BreezSdk,
+  timeoutMs = 60_000,
+) {
+  return waitForLeafOptimization(sdk, timeoutMs);
+}
+
+export { getPayerSdk };
+
+async function waitForLeafOptimization(
+  sdk: import("@breeztech/breez-sdk-spark/nodejs").BreezSdk,
+  timeoutMs = 90_000,
+) {
+  sdk.startLeafOptimization();
+
+  // Give the SDK a moment to actually start before we poll
+  await new Promise((r) => setTimeout(r, 2000));
+
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const progress = sdk.getLeafOptimizationProgress();
+    if (!progress.isRunning) break;
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+  const final = sdk.getLeafOptimizationProgress();
+  return { isRunning: final.isRunning, currentRound: final.currentRound, totalRounds: final.totalRounds };
+}
+
+export async function getPayerDebugStatus() {
+  const sdk = await getPayerSdk();
+  await sdk.syncWallet({});
+  const info = await sdk.getInfo({ ensureSynced: true });
+  const unclaimed = await sdk.listUnclaimedDeposits({});
+
+  const claimResults: { txid: string; vout: number; amountSats: number; result: string }[] = [];
+  for (const deposit of unclaimed.deposits) {
+    try {
+      await sdk.claimDeposit({ txid: deposit.txid, vout: deposit.vout });
+      claimResults.push({ txid: deposit.txid, vout: deposit.vout, amountSats: deposit.amountSats, result: "claimed" });
+    } catch (e) {
+      claimResults.push({
+        txid: deposit.txid,
+        vout: deposit.vout,
+        amountSats: deposit.amountSats,
+        result: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
+  // After claiming, always run leaf optimization so leaves are splittable for payments
+  const optimization = await waitForLeafOptimization(sdk);
+
+  // List recent received payments to see leaf/transfer state
+  const recentPayments = await sdk.listPayments({ limit: 10, sortAscending: false }).catch(() => ({ payments: [] }));
+
+  return {
+    network: normalizeNetwork(process.env.BREEZ_NETWORK),
+    balanceSats: Number(info.balanceSats ?? 0),
+    unclaimedDepositCount: unclaimed.deposits.length,
+    claimResults,
+    optimization,
+    registrationSats: REGISTRATION_SATS,
+    recentPayments: recentPayments.payments.slice(0, 5).map((p) => ({
+      id: p.id,
+      type: p.paymentType,
+      status: p.status,
+      amountSats: toNumberSafe(p.amount),
+      method: p.method,
+    })),
+  };
+}
+
 export async function getPayerFundingAddress() {
   const sdk = await getPayerSdk();
   await sdk.syncWallet({});
@@ -303,6 +383,28 @@ export async function getPayerFundingAddress() {
 export async function payInvoiceFromPayer(invoice: string, amountSats?: number) {
   const sdk = await getPayerSdk();
   await sdk.syncWallet({});
+
+  // Auto-claim any unclaimed on-chain deposits then optimize leaves.
+  // Spark needs multiple small leaves to select from; a freshly-claimed deposit
+  // is a single large leaf that must be split before outgoing payments work.
+  const unclaimed = await sdk.listUnclaimedDeposits({});
+  let didClaim = false;
+  for (const deposit of unclaimed.deposits) {
+    try {
+      await sdk.claimDeposit({ txid: deposit.txid, vout: deposit.vout });
+      didClaim = true;
+    } catch {
+      // best-effort; the deposit may not be confirmed yet
+    }
+  }
+  if (didClaim) {
+    await sdk.syncWallet({});
+  }
+
+  // Always run leaf optimization before paying — if leaves were just claimed
+  // (or previously claimed but never optimized) this splits them so the tree
+  // service can select appropriate denominations.
+  await waitForLeafOptimization(sdk);
 
   const prepare = await sdk.prepareSendPayment({
     paymentRequest: invoice.trim(),

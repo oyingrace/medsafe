@@ -1,7 +1,11 @@
 import { createWorker } from "tesseract.js";
 import { Jimp, JimpMime } from "jimp";
 
-/** Batch IDs: uppercase letters + digits, 6–16 chars (aligned with SKILL) */
+/** Labeled batch number patterns found on Nigerian drug packaging */
+const LABELED_BN_RE =
+  /(?:batch\s*n[o0]\.?|b\.?\s*n\.?|lot\s*n[o0]\.?|lot)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{4,15})/gi;
+
+/** Fallback: standalone alphanumeric token 6–16 chars */
 const BATCH_ID_RE = /\b[A-Z0-9]{6,16}\b/g;
 
 async function fetchImageBytes(url: string) {
@@ -25,6 +29,19 @@ export async function preprocessImage(buffer: Buffer) {
 }
 
 function pickBestBatchId(text: string) {
+  // Priority 1: value immediately after a "BN:", "Batch No:", "LOT:" label
+  const labeledMatches: string[] = [];
+  let m: RegExpExecArray | null;
+  LABELED_BN_RE.lastIndex = 0;
+  while ((m = LABELED_BN_RE.exec(text)) !== null) {
+    const candidate = m[1].toUpperCase().replace(/[^A-Z0-9\-\/]/g, "");
+    if (candidate.length >= 5) labeledMatches.push(candidate);
+  }
+  if (labeledMatches.length) {
+    return labeledMatches.sort((a, b) => b.length - a.length)[0];
+  }
+
+  // Priority 2: longest standalone alphanumeric token
   const normalized = text.replace(/[^\w]/g, " ").toUpperCase();
   const matches = normalized.match(BATCH_ID_RE);
   if (!matches?.length) return null;
@@ -61,7 +78,9 @@ export async function extractBatchIdFromImage(imageUrl: string) {
 }
 
 export function extractBatchIdFromText(text: string) {
-  const normalized = text.replace(/[^a-zA-Z0-9]/g, " ").toUpperCase();
-  const match = normalized.match(/\b[A-Z0-9]{6,16}\b/);
-  return match?.[0] ?? null;
+  // Strip "BN:", "Batch No:", "LOT:" prefix if the user typed it
+  const stripped = text.replace(/^(?:batch\s*n[o0]\.?|b\.?\s*n\.?|lot\s*n[o0]\.?|lot)\s*[:\-]?\s*/i, "");
+  const normalized = stripped.replace(/[^a-zA-Z0-9\-\/]/g, " ").toUpperCase();
+  const match = normalized.match(/\b[A-Z0-9][A-Z0-9\-\/]{4,15}\b/);
+  return match?.[0]?.replace(/[^A-Z0-9]/g, "") ?? null;
 }

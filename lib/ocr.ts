@@ -1,11 +1,20 @@
 import { createWorker } from "tesseract.js";
 import { Jimp, JimpMime } from "jimp";
 
-/** Labeled batch number patterns found on Nigerian drug packaging */
+/**
+ * Priority 1 — labeled: "BN:", "Batch No.", "LOT:" followed by the value.
+ * Captures: BN: B260500 | Batch No: AMX-2025-Q1 | LOT: AFY001
+ */
 const LABELED_BN_RE =
-  /(?:batch\s*n[o0]\.?|b\.?\s*n\.?|lot\s*n[o0]\.?|lot)\s*[:\-]?\s*([A-Z0-9][A-Z0-9\-\/]{4,15})/gi;
+  /(?:batch\s*n[o0]\.?|b\.?\s*n\.?|lot\s*n[o0]\.?|lot)\s*[:\-]?\s*([A-Z]{2,}[-\/]?\d{2,}[A-Z0-9\-\/]{0,12})/gi;
 
-/** Fallback: standalone alphanumeric token 6–16 chars */
+/**
+ * Priority 2 — pharma batch number shape (matches the reference project pattern):
+ * 2+ uppercase letters + optional hyphen + 2+ digits, e.g. B260500, AFY-001, AMX-2025
+ */
+const PHARMA_BATCH_RE = /\b([A-Z]{2,}-?\d{2,}[A-Z0-9\-]{0,10})\b/g;
+
+/** Priority 3 fallback — longest standalone alphanumeric token 6–16 chars */
 const BATCH_ID_RE = /\b[A-Z0-9]{6,16}\b/g;
 
 async function fetchImageBytes(url: string) {
@@ -29,20 +38,33 @@ export async function preprocessImage(buffer: Buffer) {
 }
 
 function pickBestBatchId(text: string) {
-  // Priority 1: value immediately after a "BN:", "Batch No:", "LOT:" label
+  const upper = text.toUpperCase();
+
+  // Priority 1 — labeled "BN:" / "Batch No:" / "LOT:" prefix
   const labeledMatches: string[] = [];
   let m: RegExpExecArray | null;
   LABELED_BN_RE.lastIndex = 0;
-  while ((m = LABELED_BN_RE.exec(text)) !== null) {
-    const candidate = m[1].toUpperCase().replace(/[^A-Z0-9\-\/]/g, "");
-    if (candidate.length >= 5) labeledMatches.push(candidate);
+  while ((m = LABELED_BN_RE.exec(upper)) !== null) {
+    const candidate = m[1].replace(/[^A-Z0-9\-]/g, "");
+    if (candidate.length >= 4) labeledMatches.push(candidate);
   }
   if (labeledMatches.length) {
     return labeledMatches.sort((a, b) => b.length - a.length)[0];
   }
 
-  // Priority 2: longest standalone alphanumeric token
-  const normalized = text.replace(/[^\w]/g, " ").toUpperCase();
+  // Priority 2 — pharma batch shape: 2+ letters + optional hyphen + 2+ digits
+  // e.g. B260500, AFY-001, AMX2025Q1
+  const pharmaMatches: string[] = [];
+  PHARMA_BATCH_RE.lastIndex = 0;
+  while ((m = PHARMA_BATCH_RE.exec(upper)) !== null) {
+    pharmaMatches.push(m[1]);
+  }
+  if (pharmaMatches.length) {
+    return pharmaMatches.sort((a, b) => b.length - a.length)[0];
+  }
+
+  // Priority 3 — longest standalone alphanumeric token (last resort)
+  const normalized = upper.replace(/[^\w]/g, " ");
   const matches = normalized.match(BATCH_ID_RE);
   if (!matches?.length) return null;
   return matches.sort((a, b) => b.length - a.length)[0] ?? null;
@@ -62,7 +84,7 @@ export async function extractBatchIdFromImage(imageUrl: string) {
     const batchId = pickBestBatchId(text);
 
     const conf = typeof confidence === "number" ? confidence : 0;
-    if (!batchId || conf < 70) {
+    if (!batchId || conf < 60) {
       return {
         batchId: null as string | null,
         confidence: conf,
@@ -80,7 +102,13 @@ export async function extractBatchIdFromImage(imageUrl: string) {
 export function extractBatchIdFromText(text: string) {
   // Strip "BN:", "Batch No:", "LOT:" prefix if the user typed it
   const stripped = text.replace(/^(?:batch\s*n[o0]\.?|b\.?\s*n\.?|lot\s*n[o0]\.?|lot)\s*[:\-]?\s*/i, "");
-  const normalized = stripped.replace(/[^a-zA-Z0-9\-\/]/g, " ").toUpperCase();
-  const match = normalized.match(/\b[A-Z0-9][A-Z0-9\-\/]{4,15}\b/);
-  return match?.[0]?.replace(/[^A-Z0-9]/g, "") ?? null;
+  const upper = stripped.toUpperCase();
+
+  // Try pharma batch shape first: 2+ letters + optional hyphen + 2+ digits
+  const pharma = upper.match(/\b([A-Z]{2,}-?\d{2,}[A-Z0-9\-]{0,10})\b/);
+  if (pharma) return pharma[1].replace(/[^A-Z0-9]/g, "");
+
+  // Fallback: any alphanumeric token 6–16 chars
+  const fallback = upper.replace(/[^A-Z0-9]/g, " ").match(/\b[A-Z0-9]{6,16}\b/);
+  return fallback?.[0] ?? null;
 }

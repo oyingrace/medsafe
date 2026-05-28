@@ -15,7 +15,9 @@ const payloadSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const payload = payloadSchema.parse(await req.json());
+    const raw = payloadSchema.parse(await req.json());
+    // Store batch ID normalized (uppercase, no hyphens) so OCR lookups always match
+    const payload = { ...raw, batchId: raw.batchId.toUpperCase().replace(/[^A-Z0-9]/g, "") };
     const invoiceData = await createBatchInvoice(payload.batchId);
 
     await createPendingBatch(payload, invoiceData.paymentHash, invoiceData.invoice);

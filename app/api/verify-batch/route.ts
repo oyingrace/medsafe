@@ -33,21 +33,24 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, error: "batchId is required" }, { status: 400 });
   }
 
-  const event = await queryBatchById(batchId);
+  // Normalize: uppercase and strip non-alphanumeric so OCR noise doesn't break lookup
+  const normalizedId = batchId.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+  const event = await queryBatchById(normalizedId);
   if (!event) {
-    await logAndCheckAnomaly(batchId, "fake", userPhone, region);
+    await logAndCheckAnomaly(normalizedId, "fake", userPhone, region);
     return NextResponse.json({ success: true, status: "fake" as const, reason: "not_found" });
   }
   if (!verifyEventSignature(event)) {
-    await logAndCheckAnomaly(batchId, "fake", userPhone, region);
+    await logAndCheckAnomaly(normalizedId, "fake", userPhone, region);
     return NextResponse.json({ success: true, status: "fake" as const, reason: "bad_signature" });
   }
   if (!isTrustedManufacturer(event)) {
-    await logAndCheckAnomaly(batchId, "fake", userPhone, region);
+    await logAndCheckAnomaly(normalizedId, "fake", userPhone, region);
     return NextResponse.json({ success: true, status: "fake" as const, reason: "wrong_manufacturer_pubkey" });
   }
 
-  const anomaly = await logAndCheckAnomaly(batchId, "verified", userPhone, region);
+  const anomaly = await logAndCheckAnomaly(normalizedId, "verified", userPhone, region);
   if (anomaly.isAnomaly) {
     return NextResponse.json({ success: true, status: "anomaly" as const, details: toDetails(event) });
   }

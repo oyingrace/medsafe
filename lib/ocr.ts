@@ -126,7 +126,7 @@ async function extractWithGemini(imageBuffer: Buffer): Promise<{ batchId: string
       "X-Title": "MedSafe Drug Verification",
     },
     body: JSON.stringify({
-      model: "google/gemini-flash-1.5",
+      model: "google/gemini-2.0-flash-lite-001",
       max_tokens: 32,
       messages: [
         {

@@ -4,11 +4,21 @@ import {
   deriveRegionHint,
   formatWhatsAppVerificationMessage,
   isGreeting,
-  sendWhatsAppMessage,
   WELCOME_MESSAGE,
 } from "@/lib/twilio";
 
 export const runtime = "nodejs";
+
+function twiml(message: string) {
+  // Escape XML special chars so the TwiML stays valid
+  const safe = message
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return new NextResponse(`<Response><Message>${safe}</Message></Response>`, {
+    headers: { "Content-Type": "text/xml" },
+  });
+}
 
 export async function POST(req: Request) {
   const formData = await req.formData();
@@ -16,13 +26,9 @@ export async function POST(req: Request) {
   const from = String(formData.get("From") ?? "");
   const mediaUrl = formData.get("MediaUrl0");
 
-  // Respond to greetings with the welcome message
+  // Greetings → welcome message (TwiML only — no extra API call)
   if (isGreeting(body) && !mediaUrl) {
-    await sendWhatsAppMessage(from, WELCOME_MESSAGE);
-    return new NextResponse(
-      `<Response><Message>${WELCOME_MESSAGE}</Message></Response>`,
-      { headers: { "Content-Type": "text/xml" } },
-    );
+    return twiml(WELCOME_MESSAGE);
   }
 
   let batchId: string | null = extractBatchIdFromText(body);
@@ -30,20 +36,12 @@ export async function POST(req: Request) {
     const ocr = await extractBatchIdFromImage(String(mediaUrl));
     batchId = ocr.batchId ?? null;
     if (!batchId && ocr.confidence > 0 && ocr.confidence < 70) {
-      const reply = "⚠️ Photo unclear. Retake closer photo of batch code or type the ID as text.";
-      await sendWhatsAppMessage(from, reply);
-      return new NextResponse(`<Response><Message>${reply}</Message></Response>`, {
-        headers: { "Content-Type": "text/xml" },
-      });
+      return twiml("⚠️ Photo unclear. Retake a closer photo of the batch code or type the ID as text.");
     }
   }
 
   if (!batchId) {
-    const reply = "⚠️ Could not read batch ID. Please send a clear photo or text ID.";
-    await sendWhatsAppMessage(from, reply);
-    return new NextResponse(`<Response><Message>${reply}</Message></Response>`, {
-      headers: { "Content-Type": "text/xml" },
-    });
+    return twiml("⚠️ Could not read a batch ID. Please send a clear photo or type the ID (e.g. B260500).");
   }
 
   const verifyUrl = new URL("/api/verify-batch", process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
@@ -51,12 +49,10 @@ export async function POST(req: Request) {
   verifyUrl.searchParams.set("userPhone", from);
   const regionHint = deriveRegionHint(from);
   if (regionHint) verifyUrl.searchParams.set("region", regionHint);
+
   const verifyResp = await fetch(verifyUrl.toString(), { method: "GET" });
   const verifyBody = (await verifyResp.json()) as { status: "verified" | "fake" | "anomaly" };
   const reply = formatWhatsAppVerificationMessage(verifyBody.status, batchId);
 
-  await sendWhatsAppMessage(from, reply);
-  return new NextResponse(`<Response><Message>${reply}</Message></Response>`, {
-    headers: { "Content-Type": "text/xml" },
-  });
+  return twiml(reply);
 }

@@ -2,7 +2,7 @@
 
 *Verifying Africa’s Health with Bitcoin & WhatsApp*
 
-In Africa, fake drugs kill 500,000 people yearly. MedSafe stops it — one WhatsApp photo at a time.
+> “In Africa, fake drugs kill 500,000 people yearly. MedSafe stops it — one WhatsApp photo at a time.”
 
 # Overview
 
@@ -27,7 +27,7 @@ Medsafe provides an immutable, verifiable, and accessible drug verification netw
 | --- | --- |
 | 1. Drug Registration | Manufacturers register batches (Batch ID, Drug Name, Dates, etc.) through the MedSafe dashboard. After a Lightning micropayment via Breez SDK, the batch is signed and published to the Nostr relay as a tamper-evident record. |
 | 2. Consumer Verification | A patient sends a batch ID (text) or photo of the drug packaging via WhatsApp (Twilio webhook). |
-| 3. OCR Extraction | If an image is sent, the backend processes it with Tesseract.js to extract the batch ID. |
+| 3. OCR Extraction | If an image is sent, the backend uses Google Gemini 2.5 Flash (via OpenRouter) to extract the batch ID from the photo. Tesseract.js serves as a local fallback when no API key is configured. |
 | 4. Nostr Query + Signature Check | The backend queries MedSafe batch events from Nostr and verifies event signatures before trusting the data. |
 | 5. Instant Response | The user receives either `✅ Verified` or `❌ Not Found — Possible Fake`. |
 | 6. Anomaly Detection | Verification logs are stored (Neon/Postgres) and suspicious spikes (e.g., same batch queried across many regions in short time) are flagged as anomalies (`⚠️`). |

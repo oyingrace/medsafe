@@ -70,7 +70,7 @@ Medsafe provides an immutable, verifiable, and accessible drug verification netw
 | **Database** | Neon (PostgreSQL) | Stores batch records, verification logs, and anomaly alerts |
 | **Anomaly Detection** | Custom heuristics + Postgres | Flags suspicious verification spikes across regions |
 
-** HOW TO USE THE WHATSAPP BOT
+## HOW TO USE THE WHATSAPP BOT
 1. On WhatsApp, start a chat with this number +1 (415) 523-8886
 2. Send this message, join war-natural to join my sandbox
 3. Send Hi Afiya (or a greeting), to receive basic instructions on how to go about verification

@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { extractBatchIdFromImage, extractBatchIdFromText } from "@/lib/ocr";
 import { verifyBatch } from "@/lib/verify";
+import { lookupBatchesByManufacturer } from "@/lib/db";
 import {
   deriveRegionHint,
   formatWhatsAppVerificationMessage,
+  formatCompanyMessage,
   isGreeting,
+  parseCompanyQuery,
   WELCOME_MESSAGE,
 } from "@/lib/twilio";
 
@@ -30,6 +33,13 @@ export async function POST(req: Request) {
   // Greetings → welcome message
   if (isGreeting(body) && !mediaUrl) {
     return twiml(WELCOME_MESSAGE);
+  }
+
+  // Company lookup — "verify company Emzor" / "check company Fidson"
+  const companyQuery = parseCompanyQuery(body);
+  if (companyQuery && !mediaUrl) {
+    const batches = await lookupBatchesByManufacturer(companyQuery);
+    return twiml(formatCompanyMessage(companyQuery, batches));
   }
 
   let batchId: string | null = extractBatchIdFromText(body);

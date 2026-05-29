@@ -443,6 +443,53 @@ export async function createAnomalyAlert(batchId: string, alertType: string, reg
   });
 }
 
+export interface ManufacturerBatch {
+  batchId: string;
+  drugName: string;
+  manufacturer: string;
+  expiryDate: string;
+  status: string;
+}
+
+/**
+ * Case-insensitive partial search for registered batches by manufacturer name.
+ * Returns up to 10 results so the WhatsApp message stays readable.
+ */
+export async function lookupBatchesByManufacturer(name: string): Promise<ManufacturerBatch[]> {
+  const safeName = name.trim();
+  if (!safeName) return [];
+
+  if (sql) {
+    const rows = await sql`
+      SELECT batch_id, drug_name, manufacturer, expiry_date, status
+      FROM medsafe_batches
+      WHERE manufacturer ILIKE ${"%" + safeName + "%"}
+        AND status = 'registered'
+      ORDER BY created_at DESC
+      LIMIT 10
+    `;
+    return rows.map((r) => ({
+      batchId: String(r.batch_id ?? ""),
+      drugName: String(r.drug_name ?? ""),
+      manufacturer: String(r.manufacturer ?? ""),
+      expiryDate: String(r.expiry_date ?? ""),
+      status: String(r.status ?? ""),
+    }));
+  }
+
+  const lower = safeName.toLowerCase();
+  return Array.from(mem.batches.values())
+    .filter((b) => b.status === "registered" && b.manufacturer.toLowerCase().includes(lower))
+    .slice(0, 10)
+    .map((b) => ({
+      batchId: b.batchId,
+      drugName: b.drugName,
+      manufacturer: b.manufacturer,
+      expiryDate: b.expiryDate,
+      status: b.status,
+    }));
+}
+
 export async function getDashboardStats() {
   if (sql) {
     await sql`

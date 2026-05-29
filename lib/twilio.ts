@@ -71,6 +71,50 @@ export function formatWhatsAppVerificationMessage(
   );
 }
 
+/**
+ * Detects "verify company <name>" intent.
+ * Matches: "verify company Emzor", "check company Fidson", "company: Emzor", etc.
+ * Returns the company name string, or null if no match.
+ */
+export function parseCompanyQuery(text: string): string | null {
+  const t = text.trim();
+  const m = t.match(
+    /^(?:verify|check|lookup|search|find)?\s*(?:company|manufacturer|mfr|brand)\s*[:\-]?\s*(.+)$/i,
+  );
+  return m ? m[1].trim() : null;
+}
+
+export interface ManufacturerBatch {
+  batchId: string;
+  drugName: string;
+  manufacturer: string;
+  expiryDate: string;
+}
+
+export function formatCompanyMessage(
+  query: string,
+  batches: ManufacturerBatch[],
+): string {
+  if (batches.length === 0) {
+    return (
+      `❌ *No registered batches found for "${query}"*\n\n` +
+      `This company may not be on MedSafe yet, or their batches have not been published.\n\n`
+    );
+  }
+
+  const manufacturerName = batches[0].manufacturer;
+  const lines = batches
+    .map((b, i) => `${i + 1}. *${b.batchId}* — ${b.drugName} (Exp: ${b.expiryDate})`)
+    .join("\n");
+
+  return (
+    `🏭 *${manufacturerName}*\n` +
+    `✅ Registered on MedSafe\n\n` +
+    `📦 *${batches.length} registered batch${batches.length > 1 ? "es" : ""}:*\n` +
+    `${lines}\n\n`
+  );
+}
+
 /** Coarse region hint for anomaly detection (NOT full geolocation). */
 export function deriveRegionHint(whatsappFrom: string) {
   const digits = whatsappFrom.replace(/\D/g, "");

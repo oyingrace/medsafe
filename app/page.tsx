@@ -115,7 +115,7 @@ export default function LandingPage() {
               <Step
                 number="02"
                 title="AI reads the batch code"
-                description="Our AI (Gemini 2.5 Flash) extracts the batch ID from your photo automatically. No need to type anything."
+                description="Our AI extracts the batch ID from your photo automatically. No need to type anything."
               />
               <Step
                 number="03"

@@ -108,8 +108,7 @@ export function formatCompanyMessage(
     .join("\n");
 
   return (
-    `🏭 *${manufacturerName}*\n` +
-    `✅ Registered on MedSafe\n\n` +
+    `✅${manufacturerName} is Registered on MedSafe\n\n` +
     `📦 *${batches.length} registered batch${batches.length > 1 ? "es" : ""}:*\n` +
     `${lines}\n\n`
   );

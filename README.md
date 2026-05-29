@@ -76,6 +76,91 @@ Medsafe provides an immutable, verifiable, and accessible drug verification netw
 3. Send Hi Afiya (or a greeting), to receive basic instructions on how to go about verification
 4. Then you can go ahead and use it**
 
+## 🛠️ Installation & Setup
+
+### Prerequisites
+
+- Node.js 18+
+- A [Neon](https://neon.tech) PostgreSQL database
+- A [Twilio](https://twilio.com) account with WhatsApp Sandbox enabled
+- An [OpenRouter](https://openrouter.ai) API key (for Gemini OCR)
+- [ngrok](https://ngrok.com) or a deployed URL (for Twilio webhook)
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/oyingrace/medsafe.git
+cd medsafe
+npm install
+```
+
+### 2. Configure environment variables
+
+```bash
+cp .env.example .env
+```
+
+Open `.env` and fill in the following:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `MANUFACTURER_PRIVATE_KEY` | Nostr private key (hex) for signing batch events |
+| `MANUFACTURER_PUBLIC_KEY` | Corresponding Nostr public key (hex) |
+| `OPENROUTER_API_KEY` | OpenRouter key for Gemini 2.5 Flash OCR |
+| `TWILIO_ACCOUNT_SID` | Twilio account SID |
+| `TWILIO_AUTH_TOKEN` | Twilio auth token |
+| `TWILIO_WHATSAPP_FROM` | Your Twilio WhatsApp number e.g. `whatsapp:+14155238886` |
+| `DASHBOARD_USERNAME` | Admin dashboard login username |
+| `DASHBOARD_PASSWORD` | Admin dashboard login password |
+| `SESSION_SECRET` | A long random string for signing session cookies |
+| `BREEZ_MODE` | Set to `mock` for local testing, `spark` for real Lightning |
+| `NEXT_PUBLIC_APP_URL` | Your app's public URL e.g. `http://localhost:3000` |
+
+To generate a Nostr keypair, run:
+
+```bash
+node -e "
+const { generateSecretKey, getPublicKey } = require('nostr-tools');
+const sk = generateSecretKey();
+console.log('MANUFACTURER_PRIVATE_KEY=' + Buffer.from(sk).toString('hex'));
+console.log('MANUFACTURER_PUBLIC_KEY=' + getPublicKey(sk));
+"
+```
+
+### 3. Run the development server
+
+```bash
+npm run dev
+```
+
+The dashboard will be available at [http://localhost:3000](http://localhost:3000). Log in with the credentials you set in `.env`.
+
+### 4. Set up the Twilio WhatsApp webhook
+
+Expose your local server with ngrok:
+
+```bash
+ngrok http 3000
+```
+
+Then go to [Twilio Console → WhatsApp Sandbox Settings](https://console.twilio.com/us1/develop/sms/try-it-out/whatsapp-learn) and set the **Inbound URL** to:
+
+```
+https://<your-ngrok-id>.ngrok.io/api/whatsapp-webhook
+```
+
+### 5. Deploy to Vercel (Production)
+
+```bash
+npm i -g vercel
+vercel
+```
+
+Set all `.env` variables in your Vercel project dashboard under **Settings → Environment Variables**. Update `NEXT_PUBLIC_APP_URL` to your Vercel domain and update the Twilio webhook URL accordingly. Set `BREEZ_WORKING_DIR=/tmp/breez-data` for Vercel's read-only filesystem.
+
+---
+
 ## 🌍 Impact
 
 - 🛡️ **100% Transparent drug verification** — every batch is signed, immutable, and publicly queryable

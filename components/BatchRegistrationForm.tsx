@@ -130,9 +130,6 @@ export function BatchRegistrationForm() {
       <Card>
         <CardHeader>
           <CardTitle>Register batch</CardTitle>
-          <CardDescription>
-            We generate a payment invoice (Spark on regtest, BOLT11 on mainnet). After payment settles, MedSafe signs a Nostr event for this batch.
-          </CardDescription>
         </CardHeader>
         <form onSubmit={submit}>
           <CardContent className="grid gap-4 sm:grid-cols-2">

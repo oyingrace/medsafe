@@ -25,9 +25,6 @@ export default async function BatchesPage() {
       <Card>
         <CardHeader>
           <CardTitle>All batches</CardTitle>
-          <CardDescription>
-            Verification counts reflect rows in <code>verification_logs</code> per batch.
-          </CardDescription>
         </CardHeader>
         <div className="border-t px-4 pb-6 pt-2">
           <BatchTable rows={rows} />

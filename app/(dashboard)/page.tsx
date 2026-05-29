@@ -45,13 +45,6 @@ export default async function Home() {
 
       <RecentActivity verificationRows={verificationRows} batchRows={batchRows} />
 
-      <section className="rounded-xl border border-zinc-200 p-4">
-        <h2 className="text-xl font-semibold">WhatsApp verification</h2>
-        <p className="mt-2 text-sm text-zinc-600">
-          Point Twilio at <code>/api/whatsapp-webhook</code>. Users send a batch ID or packaging photo (OCR via
-          Tesseract.js) and get a verification reply.
-        </p>
-      </section>
     </main>
   );
 }

@@ -6,7 +6,11 @@
 
 # Overview
 
-MedSafe is a drug verification system built on the Nostr protocol and Bitcoin Lightning Network to combat counterfeit and substandard medicines across Africa. It allows users to verify the authenticity of a drug by simply sending a photo of the drug pack via WhatsApp, or by sending the batch id as a text message, while manufacturers register their legitimate batches directly on the Nostr relay network — secured and authenticated through Bitcoin Lightning micropayments via Breez SDK — creating a transparent, immutable, and auditable ledger of all authentic pharmaceuticals making them also subject to verification via a simple text.
+MedSafe is a drug verification system built on the Nostr protocol and Bitcoin Lightning Network to combat counterfeit and substandard medicines across Africa. It allows users to verify the authenticity of a drug by simply sending a photo of the drug pack via WhatsApp, or by sending the batch id as a text message. 
+
+While manufacturers register their legitimate batches directly on the Nostr relay network, creating a transparent, immutable, and auditable ledger of all authentic pharmaceuticals making them also subject to verification via a simple text. 
+
+![MedSafe Dashboard](public/image_1.jpg)
 
 # Problem 
 
@@ -32,6 +36,27 @@ Medsafe provides an immutable, verifiable, and accessible drug verification netw
 | 5. Instant Response | The user receives either `✅ Verified` or `❌ Not Found — Possible Fake`. |
 | 6. Anomaly Detection | Verification logs are stored (Neon/Postgres) and suspicious spikes (e.g., same batch queried across many regions in short time) are flagged as anomalies (`⚠️`). |
 
+## Architecture
+
+```
+[Manufacturer Dashboard]
+        ↓  (Lightning micropayment via Breez SDK)
+[MedSafe API — /api/register-batch]
+        ↓  (Signs & publishes Nostr event kind 30078)
+[Nostr Relay / In-memory Registry + Neon DB]
+        ↓
+──────────────────────────────────────────
+[Consumer: WhatsApp Message / Photo]
+        ↓  (Twilio Webhook → /api/whatsapp-webhook)
+[Google Gemini 2.5 Flash OCR]  →  [Tesseract.js Fallback]
+        ↓  (Extracted Batch ID)
+[MedSafe API — /api/verify-batch]
+        ↓  (Query Nostr registry + verify event signature)
+[Anomaly Detection — Neon DB / Postgres]
+        ↓
+✅ Verified  |  ❌ Fake / Not Found  |  ⚠️ Anomaly
+```
+
 ## Technology Stack
 
 | Layer | Technology | Purpose |
@@ -44,4 +69,42 @@ Medsafe provides an immutable, verifiable, and accessible drug verification netw
 | **OCR Fallback** | Tesseract.js | Local batch ID extraction when AI is not configured|
 | **Database** | Neon (PostgreSQL) | Stores batch records, verification logs, and anomaly alerts |
 | **Anomaly Detection** | Custom heuristics + Postgres | Flags suspicious verification spikes across regions |
+
+** HOW TO USE THE WHATSAPP BOT
+1. On WhatsApp, start a chat with this number +1 (415) 523-8886
+2. Send this message, join war-natural to join my sandbox
+3. Send Hi Afiya (or a greeting), to receive basic instructions on how to go about verification
+4. Then you can go ahead and use it**
+
+## 🌍 Impact
+
+- 🛡️ **100% Transparent drug verification** — every batch is signed, immutable, and publicly queryable
+- 💬 **WhatsApp-first design** — no app downloads required; works on any phone across Africa
+- 💊 **Saves lives** by preventing counterfeit medication from reaching patients
+- 🌐 **Supply chain visibility** — enables regulators to track pharmaceuticals securely end-to-end
+- 🤝 **Accessible to everyone** — designed for petty traders, school leavers, semi-educated users, and the fully literate alike; anyone with WhatsApp can verify a drug instantly, impacting Africa at large
+
+---
+
+## 📈 Market & Business Model
+
+**Target:** Pharmaceutical manufacturers, regulatory bodies (NAFDAC, KEBS, SAHPRA), hospitals, and pharmacies.
+
+**Model:** Transaction microfees per batch log.
+
+---
+
+## 🔮 What's Next
+
+MedSafe — Africa's Drug Safety Infrastructure
+
+Next-phase features:
+
+- Partner with health ministries for national drug traceability programmes
+- Expand to medical device and vaccine batch tracking
+- Develop an AI analytics dashboard for regulators
+- Integrate digital drug certification tokens on-chain
+- Scale OCR to support additional languages and regional packaging formats
+
+
 

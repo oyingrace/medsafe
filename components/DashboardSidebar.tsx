@@ -12,9 +12,9 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/register", label: "Register Batch", icon: PackagePlus },
-  { href: "/batches", label: "Batches", icon: PackageSearch },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/register", label: "Register Batch", icon: PackagePlus },
+  { href: "/dashboard/batches", label: "Batches", icon: PackageSearch },
 ];
 
 export function DashboardSidebar({ username }: { username: string }) {
@@ -37,7 +37,7 @@ export function DashboardSidebar({ username }: { username: string }) {
       <nav className="flex flex-1 flex-col gap-1 px-3 py-4">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
+            href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(href);
           return (
             <Link
               key={href}

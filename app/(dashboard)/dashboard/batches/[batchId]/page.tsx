@@ -73,7 +73,7 @@ export default async function BatchDetailPage({
   return (
     <main className="mx-auto max-w-5xl space-y-6 p-6">
       <Link
-        href="/batches"
+        href="/dashboard/batches"
         className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "inline-flex gap-2 text-muted-foreground")}
       >
         <ArrowLeft className="size-4" />

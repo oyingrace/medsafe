@@ -33,7 +33,7 @@ export async function login(_prev: { error?: string } | undefined, formData: For
     maxAge: MAX_AGE,
   });
 
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function logout() {

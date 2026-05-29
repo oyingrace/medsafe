@@ -6,7 +6,7 @@ const SESSION_COOKIE = "ms_session";
 const PUBLIC_PATHS = ["/login", "/api/", "/"];
 
 // Routes that require auth (the manufacturer dashboard)
-const PROTECTED_PREFIXES = ["/register", "/batches", "/dashboard"];
+const PROTECTED_PREFIXES = ["/dashboard"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

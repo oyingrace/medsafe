@@ -24,10 +24,10 @@ export default async function Home() {
           Drug batch verification using Nostr for records and Lightning for anti-spam registration.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link href="/register" className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700">
+          <Link href="/dashboard/register" className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700">
             Register Batch
           </Link>
-          <Link href="/batches" className="rounded-lg border border-zinc-300 bg-white px-4 py-2 hover:bg-zinc-50">
+          <Link href="/dashboard/batches" className="rounded-lg border border-zinc-300 bg-white px-4 py-2 hover:bg-zinc-50">
             View Batches
           </Link>
         </div>

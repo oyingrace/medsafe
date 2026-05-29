@@ -17,14 +17,13 @@ export async function sendWhatsAppMessage(to: string, message: string) {
 }
 
 export const WELCOME_MESSAGE =
-  `👋 Welcome to *MedSafe* — Nigeria's drug verification system.\n\n` +
+  `👋 Welcome to *MedSafe* drug verification system.\n\n` +
   `You can:\n` +
-  `1️⃣ *Verify a drug batch* — send the batch ID\n` +
+  `1️⃣ *Verify a drug*: send the batch ID\n` +
   `   e.g. B260500\n\n` +
   `2️⃣ *Verify a company* — type:\n` +
   `   verify company Emzor\n\n` +
-  `3️⃣ *Scan packaging* — send a clear photo of the drug label and we'll extract the batch ID automatically.\n\n` +
-  `Powered by Nostr + Bitcoin Lightning ⚡`;
+  `3️⃣ *Or send a photo of the drug label for automatic check\n\n`;
 
 /** Returns true when the message looks like a greeting */
 export function isGreeting(text: string) {

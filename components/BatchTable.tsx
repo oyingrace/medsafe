@@ -142,7 +142,7 @@ export function BatchTable({ rows }: { rows: unknown[] }) {
         </TableHeader>
         <TableBody>
           {filtered.map((row) => {
-            const detailHref = `/batches/${encodeURIComponent(row.bid)}`;
+            const detailHref = `/dashboard/batches/${encodeURIComponent(row.bid)}`;
             return (
               <TableRow key={row.bid}>
                 <TableCell className="font-mono font-medium">

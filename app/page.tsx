@@ -17,12 +17,12 @@ export default function LandingPage() {
           <a href="#for-manufacturers" className="hover:text-zinc-900 transition-colors">For Manufacturers</a>
           <a href="#impact" className="hover:text-zinc-900 transition-colors">Impact</a>
         </div>
-        <Link
+       {/*  <Link
           href="/login"
           className="rounded-full bg-zinc-900 hover:bg-zinc-700 transition-colors px-4 py-2 text-sm font-medium text-white border border-zinc-900"
         >
           Manufacturer Login
-        </Link>
+        </Link> */}
       </nav>
 
       {/* ── Hero ── */}

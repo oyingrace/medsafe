@@ -94,17 +94,20 @@ Medsafe provides an immutable, verifiable, and accessible drug verification netw
 
 ---
 
-## 🔮 What's Next
+## 🌍 Future Roadmap
 
-MedSafe — Africa's Drug Safety Infrastructure
-
-Next-phase features:
-
-- Partner with health ministries for national drug traceability programmes
-- Expand to medical device and vaccine batch tracking
-- Develop an AI analytics dashboard for regulators
-- Integrate digital drug certification tokens on-chain
-- Scale OCR to support additional languages and regional packaging formats
+| Phase | Description |
+|-------|-------------|
+| **Phase 1 — Live** | Drug batch registration via Lightning micropayments, Nostr-signed records, WhatsApp verification with AI-powered OCR |
+| **Phase 2** | Shipment & supply chain tracking — trace a batch from factory floor to pharmacy shelf |
+| **Phase 3** | AI-powered anomaly prediction — detect regional counterfeit surges before they spread |
+| **Phase 4** | Public health analytics dashboard for regulators (NAFDAC, KEBS, SAHPRA) with real-time supply chain visibility |
+| **Phase 5** | Partner with health ministries for national drug traceability programmes and expand to medical devices and vaccines |
 
 
+## ❤️ Acknowledgement
+
+Built for **Hack4Freedom 2026**.
+
+> *MedSafe — Building trust in every medicine.*
 

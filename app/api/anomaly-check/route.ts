@@ -3,7 +3,7 @@ import { z } from "zod";
 import { logAndCheckAnomaly } from "@/lib/anomaly";
 
 const schema = z.object({
-  batchId: z.string().min(6),
+  batchId: z.string().min(3),
   result: z.enum(["verified", "fake", "anomaly"]).default("verified"),
   userPhone: z.string().optional(),
   region: z.string().optional(),

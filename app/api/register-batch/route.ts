@@ -6,7 +6,7 @@ import { createPendingBatch } from "@/lib/db";
 export const runtime = "nodejs";
 
 const payloadSchema = z.object({
-  batchId: z.string().trim().min(6).max(24).regex(/^[A-Za-z0-9-]+$/),
+  batchId: z.string().trim().min(3).max(24).regex(/^[A-Za-z0-9-]+$/),
   drugName: z.string().trim().min(2),
   manufacturer: z.string().trim().min(2),
   manufactureDate: z.string().trim().min(4),

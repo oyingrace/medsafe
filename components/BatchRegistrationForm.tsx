@@ -21,7 +21,7 @@ const formSchema = z.object({
   batchId: z
     .string()
     .trim()
-    .min(6, "Batch ID must be at least 6 characters")
+    .min(3, "Batch ID must be at least 3 characters")
     .max(24, "Batch ID must be 24 characters or fewer")
     .regex(/^[A-Za-z0-9-]+$/, "Use only letters, numbers, and hyphens"),
   drugName: z.string().trim().min(2, "Drug name is required"),

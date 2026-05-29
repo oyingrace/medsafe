@@ -107,7 +107,7 @@ export function BatchRegistrationForm() {
     setStatus(newStatus);
     if (data.nostrEventId) setNostrEventId(data.nostrEventId);
     if (newStatus === "paid") {
-      window.setTimeout(() => router.push("/batches"), 1500);
+      window.setTimeout(() => router.push("/dashboard/batches"), 1500);
     }
   }, [paymentHash]);
 

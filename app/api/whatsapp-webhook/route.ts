@@ -48,7 +48,7 @@ export async function POST(req: Request) {
   // Call verification logic directly — no internal HTTP fetch
   const regionHint = deriveRegionHint(from);
   const result = await verifyBatch(batchId, from, regionHint);
-  const reply = formatWhatsAppVerificationMessage(result.status, batchId);
+  const reply = formatWhatsAppVerificationMessage(result.status, batchId, result.details);
 
   return twiml(reply);
 }

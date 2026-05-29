@@ -30,10 +30,45 @@ export function isGreeting(text: string) {
   return /^\s*(hi|hello|hey|start|help|helo|howdy|hy|yo)[\s,!.]*(?:medsafe)?\s*$/i.test(text.trim());
 }
 
-export function formatWhatsAppVerificationMessage(status: "verified" | "fake" | "anomaly", batchId: string) {
-  if (status === "verified") return `✅ *VERIFIED:* ${batchId} is authentic in MedSafe.`;
-  if (status === "anomaly") return `⚠️ *ANOMALY:* ${batchId} appears suspicious. Contact the manufacturer directly.`;
-  return `❌ *NOT FOUND:* ${batchId} is not registered in MedSafe.`;
+export interface BatchDetails {
+  drugName?: string;
+  manufacturer?: string;
+  manufactureDate?: string;
+  expiryDate?: string;
+}
+
+export function formatWhatsAppVerificationMessage(
+  status: "verified" | "fake" | "anomaly",
+  batchId: string,
+  details?: BatchDetails,
+) {
+  if (status === "verified") {
+    return (
+      `✅ *Batch Verified!*\n\n` +
+      `*Batch ID:* ${batchId}\n` +
+      `*Drug:* ${details?.drugName || "—"}\n` +
+      `*Manufacturer:* ${details?.manufacturer || "—"}\n` +
+      `*Manufactured:* ${details?.manufactureDate || "—"}\n` +
+      `*Expiry Date:* ${details?.expiryDate || "—"}\n\n` +
+      `This batch is registered on the MedSafe network. ✔️`
+    );
+  }
+  if (status === "anomaly") {
+    return (
+      `⚠️ *ANOMALY DETECTED*\n\n` +
+      `*Batch ID:* ${batchId}\n` +
+      `*Drug:* ${details?.drugName || "—"}\n\n` +
+      `This batch has been verified an unusual number of times across multiple regions. ` +
+      `The drug may be genuine but the batch is being flagged for review. ` +
+      `Please contact the manufacturer or NAFDAC directly.`
+    );
+  }
+  return (
+    `❌ *Not Found*\n\n` +
+    `Batch ID *${batchId}* is not registered on the MedSafe network.\n\n` +
+    `⚠️ This medicine may be *counterfeit*. Do NOT consume it.\n` +
+    `Report to your nearest NAFDAC office.`
+  );
 }
 
 /** Coarse region hint for anomaly detection (NOT full geolocation). */

@@ -4,13 +4,15 @@
 
 > “In Africa, fake drugs kill 500,000 people yearly. MedSafe stops it — one WhatsApp photo at a time.”
 
+[Live Link](https://medsafe-app.vercel.app) | [Demo Video](https://youtu.be/YGy0xDQ5UwM?si=u7vg6cpXFRl1xKbq) | [Pitch Deck](#)
+
 # Overview
 
 MedSafe is a drug verification system built on the Nostr protocol and Bitcoin Lightning Network to combat counterfeit and substandard medicines across Africa. It allows users to verify the authenticity of a drug by simply sending a photo of the drug pack via WhatsApp, or by sending the batch id as a text message. 
 
 While manufacturers register their legitimate batches directly on the Nostr relay network, creating a transparent, immutable, and auditable ledger of all authentic pharmaceuticals making them also subject to verification via a simple text. 
 
-![MedSafe Dashboard](public/image_1.jpg)
+![MedSafe Dashboard](public/image_2.jpg)
 
 # Problem 
 
@@ -70,7 +72,7 @@ Medsafe provides an immutable, verifiable, and accessible drug verification netw
 | **Database** | Neon (PostgreSQL) | Stores batch records, verification logs, and anomaly alerts |
 | **Anomaly Detection** | Custom heuristics + Postgres | Flags suspicious verification spikes across regions |
 
-## HOW TO USE THE WHATSAPP BOT
+## HOW TO USE THE WHATSAPP AI AGENT
 1. On WhatsApp, start a chat with this number +1 (415) 523-8886
 2. Send this message, join war-natural to join my sandbox
 3. Send Hi Medsafe, to receive basic instructions on how to go about verification
